@@ -3,6 +3,8 @@ from PIL import Image
 import imgutils
 import cairo
 from dataclasses import dataclass
+import random
+import model
 
 import gi
 
@@ -11,7 +13,6 @@ gi.require_version("Pango", "1.0")
 from gi.repository import PangoCairo as pc
 from gi.repository import Pango
 
-import random
 
 ONE_INCH = 25.4  # mm
 
@@ -97,28 +98,28 @@ class RecImage:
     image.
     """
 
+    model: model.Model
     surf: cairo.RecordingSurface | None
     img_surf: cairo.ImageSurface | None
     fn: str
     pars: ImageParameters
     font_desc: Pango.FontDescription | None
     distractors: list[str]
-    distractor_font_description: Pango.FontDescription | None
 
     def __init__(
         self,
+        model,
         fn="",
         word="",
         font_desc: Pango.FontDescription | None = None,
         distractors: list[str] = [],
-        distractor_font_description: Pango.FontDescription | None = None,
     ):
+        self.model = model
         self.surf = None
         self.img_surf = None
         self.pars = ImageParameters()
         self.font_desc = font_desc
 
-        self.distractor_font_description = distractor_font_description
         self.distractors = distractors
 
         self.fn = fn
@@ -227,11 +228,9 @@ class RecImage:
 
         # Update using DPI, so we get the ~same size when drawing for
         # dpi 96 (default,pc) or dpi 300 (printing default)
-        font_desc: Pango.FontDescription
-        if not self.distractor_font_description:
+        font_desc = self.model.distractor_font_description
+        if not font_desc:
             font_desc = Pango.font_description_from_string("sans bold 30")
-        else:
-            font_desc = self.distractor_font_description
 
         layout = pc.create_layout(cr)
         pc.context_set_resolution(layout.get_context(), DPI)

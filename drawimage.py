@@ -185,8 +185,9 @@ class LetterBox(Gtk.Box, UpdateAppWindowMixin):
             """Called when setting distractor font"""
             font_desc = self.model.get_distractor_font_desc()
             self.model.distractor_font = button.get_font_desc().to_string()
-            if not font_desc or not font_desc.equal(button.get_distractor_font_desc()):
-                self.model.set_distractor_font_desc(font_desc)
+            print(font_desc, button.get_font_desc().to_string())
+            if not font_desc or not font_desc.equal(button.get_font_desc()):
+                self.model.set_distractor_font_desc(button.get_font_desc())
                 self.update_app_window()
 
         font_button = Gtk.FontButton()
