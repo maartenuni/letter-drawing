@@ -112,7 +112,6 @@ class RecImage:
         fn="",
         word="",
         font_desc: Pango.FontDescription | None = None,
-        distractors: list[str] = [],
     ):
         self.model = model
         self.surf = None
@@ -120,11 +119,8 @@ class RecImage:
         self.pars = ImageParameters()
         self.font_desc = font_desc
 
-        self.distractors = distractors
-
         self.fn = fn
         self.word = word
-        self.draw()
 
     @property
     def fn(self) -> str:
@@ -163,7 +159,7 @@ class RecImage:
         if self.word:
             self._drawWord(cr)
 
-        if self.distractors:
+        if self.model.distractors:
             self._draw_distractors(cr)
 
     def _drawImage(self, cr: cairo.Context):
@@ -237,18 +233,18 @@ class RecImage:
         print(font_desc.to_string())
         layout.set_font_description(font_desc)
         width, height = layout.get_size()
-        # width, height = width / Pango.SCALE, height / Pango.SCALE
 
         pc.update_layout(cr, layout)
 
-        for d in self.distractors:
+        for d in self.model.distractors:
             cr.save()
 
-            layout.set_text(d)
+            layout.set_text(d.string)
+            width, height = layout.get_size()
+            width, height = width / Pango.SCALE, height / Pango.SCALE
 
-            x, y = random.randint(0, self.width), random.randint(0, self.height)
-
-            cr.translate(x, y)
+            cr.translate(-width / 2, height / 2)
+            cr.translate(d.pos.x, d.pos.y)
 
             pc.layout_path(cr, layout)
 

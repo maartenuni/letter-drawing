@@ -22,7 +22,7 @@ gi.require_version("GObject", "2.0")
 from gi.repository import Gtk, Gdk, Pango
 
 
-class UpdateAppWindowMixin:
+class AppWindowMixin:
     """Classes that inherit from Gtk.Widget have a parent,
     some the topmost parent should be an application window.
 
@@ -31,14 +31,18 @@ class UpdateAppWindowMixin:
     due to this settings and the gui should reflect that.
     """
 
-    def update_app_window(self: Gtk.Widget):
+    def update_app_window(self: Gtk.Widget) -> None:
         """Look in the tree of widgets the top most window and call te
         update() function of that window. All child widgets will be requested
         to update too, and after this the gui should be fresh"""
+        self.get_app_window().update()
+
+    def get_app_window(self: Gtk.Widget()) -> MyWin:
+        """Get the toplevel window"""
         parent = self
         while not isinstance(parent, MyWin):
             parent = parent.get_parent()
-        parent.update()
+        return parent
 
 
 class DrawingWidget(Gtk.DrawingArea):
@@ -155,7 +159,7 @@ class WordGrid(Gtk.Grid):
             self.parent.update()
 
 
-class LetterBox(Gtk.Box, UpdateAppWindowMixin):
+class LetterBox(Gtk.Box, AppWindowMixin):
     """This is the box in the second tab to edit the target letters to present"""
 
     model: model.Model
@@ -234,10 +238,10 @@ class LetterBox(Gtk.Box, UpdateAppWindowMixin):
                 selected = list_model.get_selected_item()
                 if selected:
                     string = selected.get_string()
-                    self.model.distractors.remove(string)
+                    del self.model.distractors[list_model.get_selected()]
                     list_model.get_model().remove(list_model.get_selected())
 
-        letter_model = Gtk.StringList.new(list(self.model.distractors))
+        letter_model = Gtk.StringList.new([d.string for d in self.model.distractors])
         factory = Gtk.SignalListItemFactory()
         factory.connect("setup", setup_list_item)
         factory.connect("bind", bind_list_item)
@@ -254,10 +258,9 @@ class LetterBox(Gtk.Box, UpdateAppWindowMixin):
         text = entry.get_text()
         entry.set_text("")  # clear it
         if text:
-            self.model.distractors.append(text)
+            self.model.add_distractor(text)
             self.letter_view.get_model().get_model().append(text)
-            # perhaps we should make this a bit easier...
-            self.get_parent().get_parent().get_parent().get_parent().update()
+            self.update_app_window()
 
 
 class MyWin(Gtk.ApplicationWindow):
