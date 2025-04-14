@@ -189,17 +189,15 @@ class LetterBox(Gtk.Box, AppWindowMixin):
             """Called when setting distractor font"""
             font_desc = self.model.get_distractor_font_desc()
             self.model.distractor_font = button.get_font_desc().to_string()
-            print(font_desc, button.get_font_desc().to_string())
             if not font_desc or not font_desc.equal(button.get_font_desc()):
                 self.model.set_distractor_font_desc(button.get_font_desc())
                 self.update_app_window()
 
         font_button = Gtk.FontButton()
+        font_button.connect("notify::font-desc", font_set, self)
         if self.model.distractor_font:
             font_button.set_font(self.model.distractor_font)
         self.append(font_button)
-
-        font_button.connect("notify::font-desc", font_set, self)
 
     def _setup_entry(self):
         """Setup the entry to fill the content of the letter list"""
@@ -266,6 +264,8 @@ class LetterBox(Gtk.Box, AppWindowMixin):
 class MyWin(Gtk.ApplicationWindow):
     hbox: Gtk.Box  # horizontally oriented box
     vbox: Gtk.Box  # vertically oriented box
+    tab_save_box: Gtk.Box  # the vertically oriented box that contains the tabview and
+    # save buttons.
     dwidget: DrawingWidget
     model: Model
     img_label: Gtk.Label
@@ -291,15 +291,18 @@ class MyWin(Gtk.ApplicationWindow):
         self.set_child(self.hbox)
         self.hbox.set_spacing(5)
 
+        self.tab_save_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+
+        self.hbox.append(self.tab_save_box)
+
         tabview = Gtk.Notebook()
         self.letter_box = LetterBox(self.model)
 
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.vbox.set_spacing(5)
-        # self.hbox.append(self.vbox)
         tabview.append_page(self.vbox, Gtk.Label(label="Image"))
         tabview.append_page(self.letter_box, Gtk.Label(label="Letters"))
-        self.hbox.append(tabview)
+        self.tab_save_box.append(tabview)
 
         frame = Gtk.Frame(label="drawing")
 
@@ -358,6 +361,11 @@ class MyWin(Gtk.ApplicationWindow):
         self.word_grid = WordGrid(self.model, self)
         self.vbox.append(self.word_grid)
 
+        self.tab_save_box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+        button = Gtk.Button(label="save")
+        button.connect("clicked", self.on_save_clicked)
+        self.tab_save_box.append(button)
+
         # connect the unrealize signal, to save the config
         self.connect("unrealize", self.unrealize)
 
@@ -414,6 +422,23 @@ class MyWin(Gtk.ApplicationWindow):
 
     def unrealize(self, _):
         self.model.save()
+
+    def on_save_image(self, dialog: Gtk.FileChooserDialog, response: int):
+        if response == Gtk.ResponseType.ACCEPT:
+            self.update()
+            save_path = dialog.get_file().get_path()
+            self.model.rec_surf.surf.write_to_png(save_path)
+        dialog.destroy()
+
+    def on_save_clicked(self, button: Gtk.Button):
+        print(self.on_save_clicked)
+        dialog = Gtk.FileChooserDialog(
+            title="save-file", transient_for=self, action=Gtk.FileChooserAction.SAVE
+        )
+        dialog.add_button("save", Gtk.ResponseType.ACCEPT)
+        dialog.add_button("cancel", Gtk.ResponseType.CANCEL)
+        dialog.connect("response", self.on_save_image)
+        dialog.present()
 
 
 class MyApp(Gtk.Application):

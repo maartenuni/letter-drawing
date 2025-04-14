@@ -230,7 +230,7 @@ class RecImage:
 
         layout = pc.create_layout(cr)
         pc.context_set_resolution(layout.get_context(), DPI)
-        print(font_desc.to_string())
+
         layout.set_font_description(font_desc)
         width, height = layout.get_size()
 
@@ -243,7 +243,7 @@ class RecImage:
             width, height = layout.get_size()
             width, height = width / Pango.SCALE, height / Pango.SCALE
 
-            cr.translate(-width / 2, height / 2)
+            cr.translate(-width / 2, -height / 2)
             cr.translate(d.pos.x, d.pos.y)
 
             pc.layout_path(cr, layout)
