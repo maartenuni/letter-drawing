@@ -34,13 +34,22 @@ class AppWindowMixin:
     def update_app_window(self: Gtk.Widget) -> None:
         """Look in the tree of widgets the top most window and call te
         update() function of that window. All child widgets will be requested
-        to update too, and after this the gui should be fresh"""
-        self.get_app_window().update()
+        to update too, and after this the gui should be fresh.
+        It is invalid to call this on a widget that hasn't got MyWin as parent (yet).
+        """
+        appwindow = self.get_app_window()
+        if appwindow:
+            appwindow.update()
+        else:
+            logging.warning(
+                f"Unable to update appwindow value={appwindow}, does is the parent "
+                + "contained in the appwindow?"
+            )
 
     def get_app_window(self: Gtk.Widget()) -> MyWin:
         """Get the toplevel window"""
         parent = self
-        while not isinstance(parent, MyWin):
+        while parent and not isinstance(parent, MyWin):
             parent = parent.get_parent()
         return parent
 
@@ -191,7 +200,8 @@ class LetterBox(Gtk.Box, AppWindowMixin):
             self.model.distractor_font = button.get_font_desc().to_string()
             if not font_desc or not font_desc.equal(button.get_font_desc()):
                 self.model.set_distractor_font_desc(button.get_font_desc())
-                self.update_app_window()
+                if self.get_parent() is not None:
+                    self.update_app_window()
 
         font_button = Gtk.FontButton()
         font_button.connect("notify::font-desc", font_set, self)

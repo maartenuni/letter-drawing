@@ -163,7 +163,6 @@ class Model:
         return self.distractor_font_description
 
     def set_distractor_font_desc(self, font_desc: Pango.FontDescription) -> None:
-        print(font_desc)
         self.distractor_font_description = font_desc
 
     def save(self):
