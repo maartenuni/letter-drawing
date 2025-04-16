@@ -7,11 +7,8 @@ import image
 import gi
 import random
 import space
-from distractors import (
-    Distractor,
-    json_serialize_distractor,
-    json_deserialize_distractor,
-)
+from distractors import Distractor
+import serializer
 
 gi.require_version("Pango", "1.0")
 from gi.repository import Pango
@@ -26,6 +23,8 @@ class Model:
     distractors: list[Distractor]
     distractor_font: str
     distractor_font_description: Pango.FontDescription | None
+    show_path: bool
+    exclusion_path: list[space.Point2D]
 
     rec_surf: image.RecImage
 
@@ -39,6 +38,8 @@ class Model:
         word_y=0.0,
         distractors: list[Distractor] = [],
         distractor_font: str = "",
+        show_path: bool = False,
+        exclusion_path: list[space.Point2D] = [],
     ):
         self.rec_surf = image.RecImage(self)
 
@@ -52,6 +53,8 @@ class Model:
         self.distractors = distractors
         self.distractor_font = distractor_font
         self.distractor_font_description = None
+        self.show_path = show_path
+        self.exclusion_path = exclusion_path
 
     @property
     def name(self):
@@ -121,8 +124,11 @@ class Model:
             "word_x": self.word_x,
             "word_y": self.word_y,
             "font": self.font,
-            "distractors": self.distractors,
             "distractor_font": self.distractor_font,
+            "show_path": self.show_path,
+            # put long lists in the end
+            "exclusion_path": self.exclusion_path,
+            "distractors": self.distractors,
         }
 
     @staticmethod
@@ -139,7 +145,7 @@ class Model:
         if not fn:
             fn = Model.config_name
         with open(fn, "r") as content:
-            d = json.loads(content.read(), object_hook=json_deserialize_distractor)
+            d = json.loads(content.read(), object_hook=serializer.deserializer)
             model = Model(**d)
             return model
 
@@ -171,6 +177,6 @@ class Model:
                 json.dumps(
                     self.as_dict(),
                     indent=4,
-                    default=json_serialize_distractor,
+                    default=serializer.serializer,
                 ).encode("utf8")
             )

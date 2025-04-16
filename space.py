@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math as m
+import serializer
 
 
 @dataclass
@@ -58,6 +59,31 @@ class Point2D(TwoD):
             return self.x == other.x and self.y == other.y
         else:
             raise TypeError("Other is {type(other)}, Point2D was expected")
+
+
+_POINT_JSON_KEY = "__Point2D__"
+
+
+def _json_serialize_point2d(point: Point2D):
+    if not isinstance(point, Point2D):
+        raise TypeError(
+            f"Oops point is of {type(point)}, we expected a instance of {Point2D}"
+        )
+    return {_POINT_JSON_KEY: True, "x": point.x, "y": point.y}
+
+
+def _json_deserialize_point2d(dct):
+    if _POINT_JSON_KEY in dct:
+        point = Point2D(dct["x"], dct["y"])
+        return point
+    return dct
+
+
+# Add support for serializing points
+serializer.serializer.register_serializer(Point2D, _json_serialize_point2d)
+serializer.deserializer.register_deserializer(
+    _POINT_JSON_KEY, _json_deserialize_point2d
+)
 
 
 class Vector2D(TwoD):

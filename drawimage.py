@@ -5,13 +5,13 @@ from __future__ import annotations
 import gi
 import sys
 import cairo
-import json
 import logging
 import math
 import os.path as p
 from image import RecImage
 import image
 from model import Model
+import space
 
 
 gi.require_version("Gtk", "4.0")
@@ -54,7 +54,7 @@ class AppWindowMixin:
         return parent
 
 
-class DrawingWidget(Gtk.DrawingArea):
+class DrawingWidget(Gtk.DrawingArea, AppWindowMixin):
     """Gives a preview of the rendered drawing"""
 
     model: Model
@@ -62,8 +62,12 @@ class DrawingWidget(Gtk.DrawingArea):
     def __init__(self, model: Model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model = model
+        self.set_size_request(594, 841)
 
         self.set_draw_func(self.draw)
+        self._setup_mouse_events()
+        self.set_valign(Gtk.Align.CENTER)
+        self.set_vexpand(False)
 
     def draw(self, darea, cr: cairo.Context, width, height):
         surf = self.model.rec_surf.surf
@@ -84,6 +88,24 @@ class DrawingWidget(Gtk.DrawingArea):
             cr.set_source_rgb(0.5, 0.5, 0.5)
             cr.rectangle(0.0, 0.0, width, height)
         cr.fill()
+
+    def _setup_mouse_events(self):
+        def on_mouse_press(click: Gtk.GestureClick, n_press: int, x: float, y: float):
+            print(f"width = {self.get_width()}, height = {self.get_height()}")
+            if not self.model.show_path:  # don't allow path manipulations
+                return
+            orgin = space.Point2D()
+            vec = space.Vector2D(x, y)
+            scale = self.model.rec_surf.width / self.get_width()
+            vec *= scale
+            point = orgin + vec
+            self.model.exclusion_path.append(point)
+            print(f"Adding {point} to path")
+            self.update_app_window()
+
+        gesture_click = Gtk.GestureClick()
+        self.add_controller(gesture_click)
+        gesture_click.connect("pressed", on_mouse_press)
 
 
 class WordGrid(Gtk.Grid):
@@ -271,6 +293,34 @@ class LetterBox(Gtk.Box, AppWindowMixin):
             self.update_app_window()
 
 
+class PathBox(Gtk.Box, AppWindowMixin):
+    """This is the box in the third tab to edit the path for exclusion of distractors"""
+
+    check_box: Gtk.CheckButton
+
+    def __init__(self, model: model.Model):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=5.0)
+        self.model = model
+        self.append(Gtk.Label(label="Path tool"))
+        self._setup_checkbox()
+
+    def _setup_checkbox(self):
+        def on_toggled(box: Gtk.CheckButton):
+            model = self.model
+            model.show_path = box.props.active
+            print(model.show_path)
+
+        self.check_box = Gtk.CheckButton.new_with_label("show/draw path")
+        self.check_box.set_tooltip_text(
+            "When checked you can draw a path on the image on the right"
+            "Letters inside the path will be moved to the outside."
+            'Additionally, the path will "repel" the distractors a bit'
+            "so that the main image and word are not overlapped by distractors."
+        )
+        self.append(self.check_box)
+        self.check_box.connect("toggled", on_toggled)
+
+
 class MyWin(Gtk.ApplicationWindow):
     hbox: Gtk.Box  # horizontally oriented box
     vbox: Gtk.Box  # vertically oriented box
@@ -312,12 +362,12 @@ class MyWin(Gtk.ApplicationWindow):
         self.vbox.set_spacing(5)
         tabview.append_page(self.vbox, Gtk.Label(label="Image"))
         tabview.append_page(self.letter_box, Gtk.Label(label="Letters"))
+        tabview.append_page(PathBox(self.model), Gtk.Label(label="Path"))
         self.tab_save_box.append(tabview)
 
         frame = Gtk.Frame(label="drawing")
 
         self.dwidget = DrawingWidget(self.model)
-        self.dwidget.set_size_request(594, 841)
 
         frame.set_child(self.dwidget)
         self.hbox.append(frame)

@@ -3,8 +3,8 @@ from PIL import Image
 import imgutils
 import cairo
 from dataclasses import dataclass
-import random
 import model
+import space
 
 import gi
 
@@ -162,6 +162,9 @@ class RecImage:
         if self.model.distractors:
             self._draw_distractors(cr)
 
+        if self.model.show_path and self.model.exclusion_path:
+            self._draw_exclusion_path(cr, self.model.exclusion_path)
+
     def _drawImage(self, cr: cairo.Context):
         cr.save()
 
@@ -251,6 +254,16 @@ class RecImage:
             cr.stroke()
 
             cr.restore()
+
+        cr.restore()
+
+    def _draw_exclusion_path(self, cr: cairo.Context, path: list[space.Point2D]):
+        cr.save()
+        cr.set_source_rgb(0.0, 0.0, 0.0)
+
+        cr.move_to(path[0].x, path[0].y)
+        for point in path[1:]:
+            cr.move_to(point.x, point.y)
 
         cr.restore()
 

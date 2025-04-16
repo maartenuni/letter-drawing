@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import space
+import serializer
 
 
 class Distractor:
@@ -25,3 +26,8 @@ def json_deserialize_distractor(dct):
         point = space.Point2D(dct["pos_x"], dct["pos_y"])
         return Distractor(dct["string"], point)
     return dct
+
+
+# register (de-)serialization functions
+serializer.serializer.register_serializer(Distractor, json_serialize_distractor)
+serializer.deserializer.register_deserializer(Distractor, json_serialize_distractor)
