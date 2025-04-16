@@ -259,11 +259,16 @@ class RecImage:
 
     def _draw_exclusion_path(self, cr: cairo.Context, path: list[space.Point2D]):
         cr.save()
+
+        cr.set_line_width(5)
+
         cr.set_source_rgb(0.0, 0.0, 0.0)
 
         cr.move_to(path[0].x, path[0].y)
         for point in path[1:]:
-            cr.move_to(point.x, point.y)
+            cr.line_to(point.x, point.y)
+
+        cr.stroke()
 
         cr.restore()
 
