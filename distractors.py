@@ -30,4 +30,6 @@ def json_deserialize_distractor(dct):
 
 # register (de-)serialization functions
 serializer.serializer.register_serializer(Distractor, json_serialize_distractor)
-serializer.deserializer.register_deserializer(Distractor, json_serialize_distractor)
+serializer.deserializer.register_deserializer(
+    "__distractor__", json_deserialize_distractor
+)
