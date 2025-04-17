@@ -24,6 +24,7 @@ class Model:
     distractor_font: str
     distractor_font_description: Pango.FontDescription | None
     show_path: bool
+    close_path: bool
     exclusion_path: list[space.Point2D]
 
     rec_surf: image.RecImage
@@ -36,9 +37,12 @@ class Model:
         font="",
         word_x=0.0,
         word_y=0.0,
+        img_x=0.0,
+        img_y=0.0,
         distractors: list[Distractor] = [],
         distractor_font: str = "",
         show_path: bool = False,
+        close_path: bool = False,
         exclusion_path: list[space.Point2D] = [],
     ):
         self.rec_surf = image.RecImage(self)
@@ -48,12 +52,24 @@ class Model:
         self.word = word
         self.word_x = word_x
         self.word_y = word_y
+
+        if img_x:
+            self.img_x = img_x
+        else:
+            self.img_x = self.rec_surf.width / 2
+
+        if img_y:
+            self.img_y = img_y
+        else:
+            self.img_y = self.rec_surf.height / 2
+
         self.font = font
         self.font_description = None
         self.distractors = distractors
         self.distractor_font = distractor_font
         self.distractor_font_description = None
         self.show_path = show_path
+        self.close_path = show_path
         self.exclusion_path = exclusion_path
 
     @property
@@ -116,6 +132,22 @@ class Model:
         """
         self.rec_surf.pars.word_tr_y = value
 
+    @property
+    def img_x(self) -> float:
+        return self.rec_surf.pars.surf_tr_x
+
+    @img_x.setter
+    def img_x(self, value: float):
+        self.rec_surf.pars.surf_tr_x = value
+
+    @property
+    def img_y(self) -> float:
+        return self.rec_surf.pars.surf_tr_y
+
+    @img_y.setter
+    def img_y(self, value: float):
+        self.rec_surf.pars.surf_tr_y = value
+
     def as_dict(self) -> dict:
         return {
             "path": self.path,
@@ -123,9 +155,12 @@ class Model:
             "word": self.word,
             "word_x": self.word_x,
             "word_y": self.word_y,
+            "img_x": self.img_x,
+            "img_y": self.img_y,
             "font": self.font,
             "distractor_font": self.distractor_font,
             "show_path": self.show_path,
+            "close_path": self.close_path,
             # put long lists in the end
             "exclusion_path": self.exclusion_path,
             "distractors": self.distractors,
@@ -151,8 +186,11 @@ class Model:
 
     def add_distractor(self, string: str):
         width, height = self.rec_surf.pars.size
-        x, y = width * random.random(), height * random.random()
-        distractor = Distractor(string, space.Point2D(x, y))
+        point = space.Point2D(width * random.random(), height * random.random())
+        while self.rec_surf.in_exclusion_path(point):
+            print(f"{point} in exclusion_path")
+            point.x, point.y = width * random.random(), height * random.random()
+        distractor = Distractor(string, point)
         self.distractors.append(distractor)
 
     def get_font_desc(self) -> Pango.FontDescription | None:

@@ -268,9 +268,27 @@ class RecImage:
         for point in path[1:]:
             cr.line_to(point.x, point.y)
 
+        if self.model.close_path:
+            cr.close_path()
+
         cr.stroke()
 
         cr.restore()
+
+    def in_exclusion_path(self, point: space.Point2D) -> bool:
+        path: list[space.Point2D]
+        path = self.model.exclusion_path
+
+        if not self.model.exclusion_path:
+            return False
+
+        cr = cairo.Context(self.surf)
+
+        cr.move_to(path[0].x, path[0].y)
+        for p in path[1:]:
+            cr.line_to(p.x, p.y)
+        cr.close_path()
+        return cr.in_fill(point.x, point.y)
 
     def _cacheSurf(self, fn: str):
         """Caches the image as a Cairo.ImageSurface"""

@@ -91,7 +91,6 @@ class DrawingWidget(Gtk.DrawingArea, AppWindowMixin):
 
     def _setup_mouse_events(self):
         def on_mouse_press(click: Gtk.GestureClick, n_press: int, x: float, y: float):
-            print(f"width = {self.get_width()}, height = {self.get_height()}")
             if not self.model.show_path:  # don't allow path manipulations
                 return
             orgin = space.Point2D()
@@ -100,7 +99,6 @@ class DrawingWidget(Gtk.DrawingArea, AppWindowMixin):
             vec *= scale
             point = orgin + vec
             self.model.exclusion_path.append(point)
-            print(f"Adding {point} to path")
             self.update_app_window()
 
         gesture_click = Gtk.GestureClick()
@@ -303,12 +301,16 @@ class PathBox(Gtk.Box, AppWindowMixin):
         self.model = model
         self.append(Gtk.Label(label="Path tool"))
         self._setup_checkbox()
+        self._setup_clear_button()
 
     def _setup_checkbox(self):
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.append(hbox)
+
         def on_toggled(box: Gtk.CheckButton):
             model = self.model
             model.show_path = box.props.active
-            print(model.show_path)
+            self.update_app_window()
 
         self.check_box = Gtk.CheckButton.new_with_label("show/draw path")
         self.check_box.set_tooltip_text(
@@ -317,8 +319,28 @@ class PathBox(Gtk.Box, AppWindowMixin):
             'Additionally, the path will "repel" the distractors a bit'
             "so that the main image and word are not overlapped by distractors."
         )
-        self.append(self.check_box)
+        self.check_box.props.active = self.model.show_path
+        hbox.append(self.check_box)
+
+        close_box = Gtk.CheckButton(label="close path")
+        close_box.props.active = self.model.close_path
+        hbox.append(close_box)
+
+        def on_close_toggled(box: Gtk.CheckButton):
+            self.model.close_path = box.props.active
+            self.update_app_window()
+
         self.check_box.connect("toggled", on_toggled)
+        close_box.connect("toggled", on_close_toggled)
+
+    def _setup_clear_button(self):
+        def on_clear_button_clicked(button):
+            self.model.exclusion_path.clear()
+            self.update_app_window()
+
+        button = Gtk.Button.new_with_label("clear path")
+        button.connect("clicked", on_clear_button_clicked)
+        self.append(button)
 
 
 class MyWin(Gtk.ApplicationWindow):
@@ -393,14 +415,14 @@ class MyWin(Gtk.ApplicationWindow):
             Gtk.Orientation.HORIZONTAL, 0, self.model.rec_surf.width, 1
         )
         self.img_tr_x.set_size_request(150, 150)
-        self.img_tr_x.set_value(self.model.rec_surf.pars.surf_tr_x)
+        self.img_tr_x.set_value(self.model.img_x)
         self.img_tr_x.connect("value-changed", self.on_tr_x_changed)
 
         self.img_tr_y = Gtk.Scale.new_with_range(
             Gtk.Orientation.VERTICAL, 0, self.model.rec_surf.height, 1
         )
         self.img_tr_y.set_size_request(150, 150)
-        self.img_tr_y.set_value(self.model.rec_surf.pars.surf_tr_y)
+        self.img_tr_y.set_value(self.model.img_y)
         self.img_tr_y.connect("value-changed", self.on_tr_y_changed)
 
         self.img_scale.props.draw_value = True
